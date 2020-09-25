@@ -6,7 +6,8 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:truact/schedule_notifications.dart';
+import 'package:FlutterDemo/schedule_notifications.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
 void main() async{
   WidgetsFlutterBinding.ensureInitialized();
@@ -47,17 +48,26 @@ Future<void> handleBox() async{
   _firebaseMessaging.getToken().then((token){
     print('Token received $token');
   });
+  if (Platform.isIOS) {
+await _firebaseMessaging.requestNotificationPermissions();
+  }
+  
   _firebaseMessaging.configure(
     onMessage: (Map<String, dynamic> message) async {
       print("onMessage: $message");
-      showNotification('hi');
+      //showNotification('hi');
+      showToast('onMessage ${message.toString()}');
     },
-    onBackgroundMessage: myBackgroundMessageHandler,
+    onBackgroundMessage: Platform.isIOS ? null : myBackgroundMessageHandler,
     onLaunch: (Map<String, dynamic> message) async {
       print("onLaunch: $message");
+      //showNotification('onLaunch');
+      showToast('onLaunch ${message.toString()}');
     },
     onResume: (Map<String, dynamic> message) async {
       print("onResume: $message");
+      showToast('onResume ${message.toString()}');
+
     },
   );
   Box box = await Hive.openBox("fcm");
@@ -121,6 +131,18 @@ Future<dynamic> myBackgroundMessageHandler(Map<String, dynamic> message) async {
   }
 }
 
+void showToast(String msg) {
+  Fluttertoast.showToast(
+        msg: msg,
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.CENTER,
+        timeInSecForIosWeb: 1,
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+        fontSize: 16.0
+    );
+}
+
 void showNotification(String payload) {
   notifications.show(
       id: 1,
@@ -128,7 +150,7 @@ void showNotification(String payload) {
       priority: Priority.High,
       ticker: 'Hi',
       title: 'Hi',
-      body: 'From App Local notification',
+      body: payload,
       payload: payload,
       visibility: NotificationVisibility.Secret,
       /*playSound: settings != null ? settings.alertSound : true,
